@@ -9,6 +9,8 @@ type Report struct {
  FailedJobs int `json:"failed_jobs"`
  TotalJobSeconds float64 `json:"total_job_seconds"`
  EstimatedRunnerMinutes float64 `json:"estimated_runner_minutes"`
+ EstimatedCostUSD float64 `json:"estimated_cost_usd,omitempty"`
+ CostRateUSDPerMinute float64 `json:"cost_rate_usd_per_minute,omitempty"`
  TotalCriticalPathSeconds float64 `json:"total_critical_path_seconds"`
  AverageCriticalPathSeconds float64 `json:"average_critical_path_seconds"`
  CacheSignals int `json:"cache_signals_observed"`
@@ -20,7 +22,7 @@ type JobSummary struct { Name string `json:"name"`; Runs int `json:"runs"`; Tota
 type StepSummary struct { Name string `json:"name"`; Runs int `json:"runs"`; TotalSeconds float64 `json:"total_seconds"`; AverageSeconds float64 `json:"average_seconds"` }
 type Recommendation struct { Severity string `json:"severity"`; Title string `json:"title"`; Reason string `json:"reason"` }
 
-func Recommend(r Report) []Recommendation {
+func ApplyCost(r *Report, usdPerMinute float64) {\n if usdPerMinute > 0 { r.CostRateUSDPerMinute = usdPerMinute; r.EstimatedCostUSD = r.EstimatedRunnerMinutes * usdPerMinute }\n}\n\nfunc Recommend(r Report) []Recommendation {
  jobs := append([]JobSummary(nil), r.Jobs...)
  sort.Slice(jobs, func(i,j int) bool { return jobs[i].AverageSeconds > jobs[j].AverageSeconds })
  var out []Recommendation
