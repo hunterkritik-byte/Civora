@@ -22,4 +22,7 @@ func main() {
  b, _ := json.MarshalIndent(report, "", "  ")
  fmt.Println(string(b))
  fmt.Printf("\nAnalyzed %d workflow runs at %s\n", report.RunsAnalyzed, time.Now().UTC().Format(time.RFC3339))
+ fmt.Printf("Measured runner time: %.1f minutes\n", report.EstimatedRunnerMinutes)
+ fmt.Printf("Average critical path: %.1f minutes\n", report.AverageCriticalPathSeconds/60)
+ if report.CacheSignals > 0 { fmt.Printf("Cache/setup signals observed: %d\n", report.CacheSignals) }
 }
