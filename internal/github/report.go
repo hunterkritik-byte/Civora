@@ -12,6 +12,7 @@ type Report struct {
  EstimatedCostUSD float64 `json:"estimated_cost_usd,omitempty"`
  CostRateUSDPerMinute float64 `json:"cost_rate_usd_per_minute,omitempty"`
  TotalCriticalPathSeconds float64 `json:"total_critical_path_seconds"`
+ TotalParallelRuns int `json:"parallel_runs"`
  AverageCriticalPathSeconds float64 `json:"average_critical_path_seconds"`
  CacheSignals int `json:"cache_signals_observed"`
  Jobs []JobSummary `json:"jobs"`
@@ -70,7 +71,7 @@ func Recommend(r Report) []Recommendation {
   out = append(out, Recommendation{"high", "CI reliability issue", "At least 20% of analyzed jobs failed."})
  }
 
- if r.AverageCriticalPathSeconds > 0 && r.TotalJobSeconds/r.AverageCriticalPathSeconds > 1.5 {
+ if r.TotalParallelRuns > 0 && r.AverageCriticalPathSeconds > 0 && r.TotalJobSeconds/r.AverageCriticalPathSeconds > 1.5 {
   out = append(out, Recommendation{"medium", "Review workflow parallelism", "Aggregate job time is substantially higher than the average critical-path duration; parallelization may be hiding runner waste."})
  }
 
