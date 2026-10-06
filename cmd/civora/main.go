@@ -1,6 +1,7 @@
 package main
 
 import (
+ "encoding/json"
  "flag"
  "fmt"
  "os"
@@ -23,24 +24,22 @@ func main() {
   fmt.Fprintln(os.Stderr, "usage: civora -repo owner/name [-runs 30]")
   os.Exit(2)
  }
-
  token := strings.TrimSpace(os.Getenv("GITHUB_TOKEN"))
  if token == "" {
   fmt.Fprintln(os.Stderr, "GITHUB_TOKEN is required")
   os.Exit(2)
  }
-
  report, err := github.New(token).AnalyzeRepository(*repo, *runs)
  if err != nil {
   fmt.Fprintln(os.Stderr, "civora:", err)
   os.Exit(1)
  }
-
  github.ApplyCost(&report, *costRate)
  github.BuildBusinessMetrics(&report, *monthlyRuns, *costRate, *savingsPct)
 
  if *jsonOutput {
-  printJSON(report)
+  b, _ := json.MarshalIndent(report, "", "  ")
+  fmt.Println(string(b))
   return
  }
 
@@ -52,37 +51,26 @@ func main() {
 
  fmt.Println("\nTop waste")
  steps := append([]github.StepSummary(nil), report.Steps...)
- sort.Slice(steps, func(i, j int) bool {
-  return steps[i].TotalSeconds > steps[j].TotalSeconds
- })
+ sort.Slice(steps, func(i, j int) bool { return steps[i].TotalSeconds > steps[j].TotalSeconds })
  for i, step := range steps {
-  if i >= 2 {
-   break
-  }
+  if i >= 2 { break }
   fmt.Printf("  %-18s %.0fs\n", step.Name, step.TotalSeconds)
  }
 
  fmt.Println("\nPotential improvements")
  for i, rec := range report.Recommendations {
-  if i >= 3 {
-   break
-  }
+  if i >= 3 { break }
   fmt.Printf("  • %s\n", rec.Title)
  }
 
  fmt.Println("\nMonthly projection")
  fmt.Printf("  Runs/month: %.0f\n", report.RunsPerMonth)
  fmt.Printf("  Current runtime: ~%.1fh\n", report.MonthlyRuntimeHours)
-
  if report.MonthlyCostUSD > 0 {
   fmt.Printf("  Estimated cost: $%.2f\n", report.MonthlyCostUSD)
-  fmt.Printf("  Potential saving: $%.2f (%.0f%% scenario)\n",
-   report.PotentialMonthlySavingsUSD, report.SavingsScenarioPercent)
+  fmt.Printf("  Potential saving: $%.2f (%.0f%% scenario)\n", report.PotentialMonthlySavingsUSD, report.SavingsScenarioPercent)
  } else {
   fmt.Println("  Estimated cost: set -cost-per-minute")
  }
 }
 
-func printJSON(report github.Report) {
- fmt.Printf("%+v\n", report)
-}
