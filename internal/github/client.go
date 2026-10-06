@@ -14,7 +14,8 @@ import (
 type Client struct { token string; http *http.Client }
 func New(token string) *Client { return &Client{token:token,http:&http.Client{Timeout:30*time.Second}} }
 
-type workflowRunsResponse struct { TotalCount int `json:"total_count"`; Runs []struct { ID int64 `json:"id"`; Name string `json:"name"`; Status string `json:"status"`; Conclusion string `json:"conclusion"` } `json:"workflow_runs"` }
+type workflowRunsResponse struct { TotalCount int `json:"total_count"`; Runs []WorkflowRun `json:"workflow_runs"` }
+type WorkflowRun struct { ID int64 `json:"id"`; Name string `json:"name"`; Status string `json:"status"`; Conclusion string `json:"conclusion"`; CreatedAt string `json:"created_at"`; RunStartedAt string `json:"run_started_at"` }
 type jobsResponse struct { Jobs []Job `json:"jobs"` }
 type Job struct { ID int64 `json:"id"`; Name string `json:"name"`; Status string `json:"status"`; Conclusion string `json:"conclusion"`; StartedAt string `json:"started_at"`; CompletedAt string `json:"completed_at"`; Steps []Step `json:"steps"` }
 type Step struct { Name string `json:"name"`; Status string `json:"status"`; Conclusion string `json:"conclusion"`; StartedAt string `json:"started_at"`; CompletedAt string `json:"completed_at"` }
@@ -38,14 +39,35 @@ func (c *Client) AnalyzeRepository(repo string, limit int) (Report,error) {
   var jobs jobsResponse
   p:=fmt.Sprintf("/repos/%s/%s/actions/runs/%d/jobs?per_page=100",url.PathEscape(parts[0]),url.PathEscape(parts[1]),run.ID)
   if err:=c.get(p,&jobs);err!=nil{return Report{},err}
+  var runCritical float64
   for _,job:=range jobs.Jobs {
-   report.TotalJobs++; d:=duration(job.StartedAt,job.CompletedAt); report.TotalJobSeconds+=d.Seconds(); failed:=job.Conclusion=="failure"; if failed{report.FailedJobs++}
+   report.TotalJobs++
+   d:=duration(job.StartedAt,job.CompletedAt)
+   seconds:=d.Seconds()
+   report.TotalJobSeconds+=seconds
+   if seconds>runCritical { runCritical=seconds }
+   failed:=job.Conclusion=="failure"
+   if failed{report.FailedJobs++}
+   for _,step:=range job.Steps {
+    sd:=duration(step.StartedAt,step.CompletedAt).Seconds()
+    if sd<=0 { continue }
+    s:=findStep(report.Steps,step.Name)
+    if s==nil { report.Steps=append(report.Steps,StepSummary{Name:step.Name,Runs:1,TotalSeconds:sd,AverageSeconds:sd}); s=&report.Steps[len(report.Steps)-1] } else { s.Runs++; s.TotalSeconds+=sd; s.AverageSeconds=s.TotalSeconds/float64(s.Runs) }
+    n:=strings.ToLower(step.Name)
+    if strings.Contains(n,"cache") || strings.Contains(n,"setup-node") || strings.Contains(n,"setup-python") || strings.Contains(n,"setup-go") { report.CacheSignals++ }
+   }
    found:=false
-   for i:=range report.Jobs { if report.Jobs[i].Name==job.Name { report.Jobs[i].Runs++; report.Jobs[i].TotalSeconds+=d.Seconds(); report.Jobs[i].Failed=report.Jobs[i].Failed||failed; found=true; break } }
-   if !found { report.Jobs=append(report.Jobs,JobSummary{Name:job.Name,Runs:1,TotalSeconds:d.Seconds(),Failed:failed}) }
+   for i:=range report.Jobs { if report.Jobs[i].Name==job.Name { report.Jobs[i].Runs++; report.Jobs[i].TotalSeconds+=seconds; report.Jobs[i].AverageSeconds=report.Jobs[i].TotalSeconds/float64(report.Jobs[i].Runs); report.Jobs[i].Failed=report.Jobs[i].Failed||failed; found=true; break } }
+   if !found { report.Jobs=append(report.Jobs,JobSummary{Name:job.Name,Runs:1,TotalSeconds:seconds,AverageSeconds:seconds,Failed:failed}) }
   }
+  report.TotalCriticalPathSeconds += runCritical
  }
- for i:=range report.Jobs { if report.Jobs[i].Runs>0 {report.Jobs[i].AverageSeconds=report.Jobs[i].TotalSeconds/float64(report.Jobs[i].Runs)} }
- report.Recommendations=Recommend(report); return report,nil
+ report.EstimatedRunnerMinutes=report.TotalJobSeconds/60
+ report.AverageCriticalPathSeconds=report.TotalCriticalPathSeconds/float64(max(1,report.RunsAnalyzed))
+ report.Recommendations=Recommend(report)
+ return report,nil
 }
+
+func findStep(steps []StepSummary,name string)*StepSummary { for i:=range steps { if steps[i].Name==name{return &steps[i]} }; return nil }
 func duration(start,end string) time.Duration { if start==""||end==""{return 0}; a,e1:=time.Parse(time.RFC3339Nano,start); b,e2:=time.Parse(time.RFC3339Nano,end); if e1!=nil||e2!=nil||b.Before(a){return 0}; return b.Sub(a) }
+func max(a,b int) int { if a>b{return a}; return b }
