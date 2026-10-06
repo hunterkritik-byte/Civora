@@ -17,9 +17,13 @@ Civora focuses on **measuring real CI behavior first** and making recommendation
 - Real GitHub Actions workflow runs
 - Real job and step timing metadata
 - Job-duration aggregation
+- Step-duration aggregation
 - Failure-rate analysis
 - Slow-job detection
 - Recurring-failure detection
+- Workflow critical-path approximation
+- Configurable runner cost estimation
+- Cache/setup signal detection without fabricated hit-rate claims
 - JSON reports
 - No simulated workflow data
 
@@ -37,7 +41,7 @@ For private repositories, use a fine-grained token with Actions read-only access
 Example:
 
 ```bash
-go run ./cmd/civora -repo hunterkritik-byte/Civora -runs 30
+go run ./cmd/civora -repo hunterkritik-byte/Civora -runs 30\n\nTo estimate cost, provide the runner rate you actually use (for example, your internal blended rate):\n\n```bash\ngo run ./cmd/civora -repo OWNER/REPO -runs 30 -cost-per-minute 0.008\n```\n\nCivora labels this as an estimate; it does not claim a universal GitHub Actions price.
 ```
 
 ## Product direction
@@ -133,6 +137,8 @@ Security reports should be handled privately rather than posted publicly when th
 - [x] Real GitHub Actions API analyzer
 - [x] Job timing and failure analysis
 - [x] JSON reporting
+- [x] Step and critical-path analysis
+- [x] Configurable cost estimation
 - [ ] GitHub App installation flow
 - [ ] Webhook ingestion
 - [ ] Cache effectiveness analyzer
