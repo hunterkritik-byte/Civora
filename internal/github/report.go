@@ -8,10 +8,16 @@ type Report struct {
  TotalJobs int `json:"total_jobs"`
  FailedJobs int `json:"failed_jobs"`
  TotalJobSeconds float64 `json:"total_job_seconds"`
+ EstimatedRunnerMinutes float64 `json:"estimated_runner_minutes"`
+ TotalCriticalPathSeconds float64 `json:"total_critical_path_seconds"`
+ AverageCriticalPathSeconds float64 `json:"average_critical_path_seconds"`
+ CacheSignals int `json:"cache_signals_observed"`
  Jobs []JobSummary `json:"jobs"`
+ Steps []StepSummary `json:"steps"`
  Recommendations []Recommendation `json:"recommendations"`
 }
 type JobSummary struct { Name string `json:"name"`; Runs int `json:"runs"`; TotalSeconds float64 `json:"total_seconds"`; AverageSeconds float64 `json:"average_seconds"`; Failed bool `json:"failed"` }
+type StepSummary struct { Name string `json:"name"`; Runs int `json:"runs"`; TotalSeconds float64 `json:"total_seconds"`; AverageSeconds float64 `json:"average_seconds"` }
 type Recommendation struct { Severity string `json:"severity"`; Title string `json:"title"`; Reason string `json:"reason"` }
 
 func Recommend(r Report) []Recommendation {
@@ -24,5 +30,11 @@ func Recommend(r Report) []Recommendation {
   if j.Failed && j.Runs >= 3 { out=append(out, Recommendation{"high","Investigate recurring failures: "+j.Name,"This job has failed in analyzed runs."}) }
  }
  if r.TotalJobs > 0 && r.FailedJobs*5 >= r.TotalJobs { out=append(out, Recommendation{"high","CI reliability issue","At least 20% of analyzed jobs failed."}) }
+ if r.AverageCriticalPathSeconds > 0 && r.TotalJobSeconds/r.AverageCriticalPathSeconds > 1.5 {
+  out=append(out, Recommendation{"medium","Review workflow parallelism","Aggregate job time is substantially higher than the average critical-path duration; parallelization may be hiding runner waste."})
+ }
+ if r.CacheSignals > 0 {
+  out=append(out, Recommendation{"info","Inspect cache configuration","Cache/setup steps were observed. Civora does not infer cache hit rates from metadata alone; inspect cache keys and restore behavior before claiming savings."})
+ }
  return out
 }
