@@ -40,6 +40,8 @@ func (c *Client) AnalyzeRepository(repo string, limit int) (Report,error) {
   p:=fmt.Sprintf("/repos/%s/%s/actions/runs/%d/jobs?per_page=100",url.PathEscape(parts[0]),url.PathEscape(parts[1]),run.ID)
   if err:=c.get(p,&jobs);err!=nil{return Report{},err}
   var runCritical float64
+  runJobs := len(jobs.Jobs)
+  if runJobs > 1 { report.TotalParallelRuns++ }
   for _,job:=range jobs.Jobs {
    report.TotalJobs++
    d:=duration(job.StartedAt,job.CompletedAt)
