@@ -1,6 +1,6 @@
 # Civora
 
-**Real GitHub Actions CI cost and performance optimizer.**
+**Real GitHub Actions CI cost and performance optimizer.**\n\n**Sponsorship & partnerships:** hunterkritik@gmail.com
 
 Civora helps engineering teams understand where their GitHub Actions time and runner capacity are being spent, identify CI waste, and apply measurable optimizations.
 
@@ -44,7 +44,7 @@ Example:
 go run ./cmd/civora -repo hunterkritik-byte/Civora -runs 30\n\nTo estimate cost, provide the runner rate you actually use (for example, your internal blended rate):\n\n```bash\ngo run ./cmd/civora -repo OWNER/REPO -runs 30 -cost-per-minute 0.008\n```\n\nCivora labels this as an estimate; it does not claim a universal GitHub Actions price.
 ```
 
-## Product direction
+## What Civora should improve next\n\nThe next engineering priorities are:\n\n1. **Better evidence** — collect workflow/job queue time, runner labels, retries, and more historical runs.\n2. **Better cost modeling** — distinguish measured GitHub billing data from configurable estimates and support runner-type pricing.\n3. **Better cache intelligence** — inspect cache restore/save behavior and dependency-install patterns instead of treating setup signals as cache hits.\n4. **Better reliability analysis** — detect recurring failures, flaky tests, retries, and failure clusters.\n5. **Better recommendations** — every recommendation should include the observed evidence and avoid unsupported savings claims.\n6. **GitHub App ingestion** — move from on-demand API analysis toward secure event-driven analysis.\n7. **Dashboard and history** — track whether an optimization actually improved runtime, reliability, or cost.\n\n## Product direction
 
 Civora is being built as a real developer platform, not a static CI report generator:
 
@@ -142,7 +142,7 @@ Security reports should be handled privately rather than posted publicly when th
 - [ ] GitHub App installation flow
 - [ ] Webhook ingestion
 - [ ] Cache effectiveness analyzer
-- [ ] Workflow critical-path analysis
+- [x] Workflow critical-path analysis
 - [ ] Runner-aware cost engine
 - [ ] HTML/web dashboard
 - [ ] Optimization recommendation engine
