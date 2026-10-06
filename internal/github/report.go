@@ -18,6 +18,13 @@ type Report struct {
  Jobs []JobSummary `json:"jobs"`
  Steps []StepSummary `json:"steps"`
  Recommendations []Recommendation `json:"recommendations"`
+ WasteScore int `json:"ci_waste_score"`
+ FailureRatePercent float64 `json:"failure_rate_percent"`
+ RunsPerMonth float64 `json:"runs_per_month,omitempty"`
+ MonthlyRuntimeHours float64 `json:"monthly_runtime_hours,omitempty"`
+ MonthlyCostUSD float64 `json:"monthly_cost_usd,omitempty"`
+ PotentialMonthlySavingsUSD float64 `json:"potential_monthly_savings_usd,omitempty"`
+ SavingsScenarioPercent float64 `json:"savings_scenario_percent,omitempty"`
 }
 
 type JobSummary struct {
@@ -41,7 +48,7 @@ type Recommendation struct {
  Reason string `json:"reason"`
 }
 
-func ApplyCost(r *Report, usdPerMinute float64) {
+func BuildBusinessMetrics(r *Report, runsPerMonth, usdPerMinute, savingsPercent float64) {\n if r.RunsAnalyzed == 0 { return }\n r.FailureRatePercent = float64(r.FailedJobs) / float64(r.TotalJobs) * 100\n score := 100\n if r.FailureRatePercent > 0 { score -= int(r.FailureRatePercent * 0.8) }\n if r.CacheSignals > 0 { score -= 10 }\n if r.FailureRatePercent >= 20 { score -= 10 }\n if score < 0 { score = 0 }; if score > 100 { score = 100 }\n r.WasteScore = score\n if runsPerMonth <= 0 { runsPerMonth = 30 }\n r.RunsPerMonth = runsPerMonth\n r.MonthlyRuntimeHours = r.EstimatedRunnerMinutes * runsPerMonth / 60 / float64(r.RunsAnalyzed)\n if usdPerMinute > 0 {\n  r.MonthlyCostUSD = r.EstimatedRunnerMinutes * runsPerMonth / float64(r.RunsAnalyzed) * usdPerMinute\n  if savingsPercent > 0 { r.SavingsScenarioPercent = savingsPercent; r.PotentialMonthlySavingsUSD = r.MonthlyCostUSD * savingsPercent / 100 }\n }\n}\n\nfunc ApplyCost(r *Report, usdPerMinute float64) {
  if usdPerMinute > 0 {
   r.CostRateUSDPerMinute = usdPerMinute
   r.EstimatedCostUSD = r.EstimatedRunnerMinutes * usdPerMinute
