@@ -6,6 +6,7 @@ import (
  "fmt"
  "os"
  "strings"
+ "sort"
  "time"
  "github.com/hunterkritik-byte/Civora/internal/github"
 )
@@ -16,6 +17,7 @@ func main() {
  costRate := flag.Float64("cost-per-minute", 0, "estimated runner cost in USD per minute; 0 disables cost estimate")
  monthlyRuns := flag.Float64("monthly-runs", 30, "estimated workflow runs per month")
  savingsPct := flag.Float64("savings-scenario", 20, "scenario percentage used for potential savings")
+ jsonOutput := flag.Bool("json", false, "print the full JSON report instead of the human report")
  flag.Parse()
  if *repo == "" { fmt.Fprintln(os.Stderr, "usage: civora -repo owner/name [-runs 30]"); os.Exit(2) }
  token := strings.TrimSpace(os.Getenv("GITHUB_TOKEN"))
